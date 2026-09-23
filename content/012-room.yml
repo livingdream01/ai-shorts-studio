@@ -1,0 +1,21 @@
+id: 012-room
+title: Change the room
+series: S1 — Wren Says
+character: Wren
+voice: en_US-lessac
+hook: You can't heal in the same room that hurt you.
+signoff: That's the whole thought. Another one tomorrow.
+script: >-
+  You can't heal in the same room that hurt you.
+
+  I kept trying to. I kept going back to the same place, the same people,
+  expecting to feel different.
+
+  Environment beats willpower. Every time.
+
+  You don't out-discipline a room that keeps cutting you.
+
+  You leave it.
+
+  Then you heal somewhere that lets you.
+shots: []

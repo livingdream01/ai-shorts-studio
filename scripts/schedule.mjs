@@ -8,10 +8,19 @@
  * Pipeline per run: generate → render → dashboard → publish (respects PUBLISH).
  */
 import { execFileSync } from "node:child_process";
+import { readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/** Episodes in content/ that have no rendered video yet (filename stem == id). */
+function unrendered() {
+  const c = join(ROOT, "content");
+  return readdirSync(c)
+    .filter((f) => f.endsWith(".yml"))
+    .filter((f) => !existsSync(join(ROOT, "build", f.replace(/\.yml$/, ""), "episode.mp4")));
+}
 const run = (script) => {
   try {
     execFileSync(process.execPath, [join(ROOT, "scripts", script)], { stdio: "inherit" });
@@ -24,7 +33,12 @@ const run = (script) => {
 
 function runEpisode() {
   const stamp = new Date().toISOString();
-  console.log(`\n[schedule] ▶ episode run at ${stamp}`);
+  const queue = unrendered();
+  if (!queue.length) {
+    console.log(`\n[schedule] ${stamp} — all episodes rendered, nothing queued. Idle.`);
+    return;
+  }
+  console.log(`\n[schedule] ▶ episode run at ${stamp} (${queue.length} queued)`);
   if (run("generate.mjs")) run("render.mjs");
   try { run("dashboard.mjs"); } catch {}
   run("publish.mjs");

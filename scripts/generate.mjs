@@ -9,7 +9,7 @@
  *   node scripts/generate.mjs 001        # match by substring
  */
 import YAML from "yaml";
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, config } from "./lib/config.mjs";
 import { llm } from "./lib/providers.mjs";
@@ -17,8 +17,19 @@ import { llm } from "./lib/providers.mjs";
 const cfg = config();
 const contentDir = join(ROOT, "content");
 const arg = process.argv[2];
-const ymlFiles = readdirSync(contentDir).filter((f) => f.endsWith(".yml"));
-const file = arg ? ymlFiles.find((f) => f.includes(arg)) : ymlFiles[0];
+const ymlFiles = readdirSync(contentDir).filter((f) => f.endsWith(".yml")).sort();
+
+// Default selection: the next episode that has not been rendered yet, so the
+// daily box works through a season in order without being told which one.
+function pick() {
+  if (arg) return ymlFiles.find((f) => f.includes(arg));
+  for (const f of ymlFiles) {
+    const id = YAML.parse(readFileSync(join(contentDir, f), "utf-8")).id;
+    if (!existsSync(join(ROOT, "build", id, "episode.mp4"))) return f;
+  }
+  return ymlFiles[0];
+}
+const file = pick();
 
 if (!file) {
   console.error(arg ? `no content/*.yml matching "${arg}"` : "no content/*.yml found");
