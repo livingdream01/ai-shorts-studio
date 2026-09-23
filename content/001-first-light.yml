@@ -1,0 +1,40 @@
+id: "001-first-light"
+date: "2026-09-24"
+title: "First Light"
+series: "S1 — One thought a day"
+character: "Aria"
+voice: "Samantha"
+hook: "Nobody told me this, so I'll tell you."
+signoff: "That's the whole thought. Another one tomorrow."
+music: "calm-piano"
+
+# ~70 words renders to about 28 seconds at a calm pace.
+script: |
+  Nobody told me this, so I'll tell you.
+  I spent my twenties waiting for permission.
+  A manager, a mentor, a sign — someone to say "you're ready now."
+  It never came. It never comes.
+  The day I stopped waiting was the day things started moving.
+  Not because I was ready — because I decided.
+  You don't get certainty first. You get it after.
+  So if you're waiting for a green light, look down.
+  You're holding it.
+
+captions:
+  - "Nobody told me this, so I'll tell you."
+  - "I spent years waiting for permission."
+  - "A manager, a mentor, a sign."
+  - "It never came. It never comes."
+  - "The day I stopped waiting, things moved."
+  - "You don't get certainty first."
+  - "You get it after."
+
+shots:
+  - kind: broll
+    prompt: "quiet city street at dawn, soft mist, cinematic, 9:16"
+  - kind: talking
+    line: "Nobody told me this, so I'll tell you."
+  - kind: broll
+    prompt: "person walking alone through morning light, slow motion"
+  - kind: talking
+    line: "You don't get certainty first. You get it after."

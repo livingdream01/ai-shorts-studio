@@ -1,0 +1,17 @@
+{
+  "name": "ai-shorts-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An AI-run short-form video studio: one consistent character, one episode a day.",
+  "license": "MIT",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "render": "node scripts/render.mjs",
+    "publish": "node scripts/publish.mjs",
+    "episode": "node scripts/generate.mjs && node scripts/render.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  }
+}

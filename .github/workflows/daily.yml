@@ -1,0 +1,47 @@
+name: daily-episode
+
+on:
+  schedule:
+    - cron: "0 14 * * *" # 14:00 UTC every day
+  workflow_dispatch: {}
+
+jobs:
+  episode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ubuntu-latest ffmpeg ships with libass + freetype, so captions burn in here.
+      - name: System deps
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: npm ci
+
+      - name: Generate storyboard
+        run: node scripts/generate.mjs
+
+      - name: Render video
+        run: node scripts/render.mjs
+
+      - name: Upload episode artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: episode
+          path: build/**/episode.mp4
+
+      - name: Publish
+        if: ${{ vars.PUBLISH == 'true' }}
+        env:
+          PUBLISH: "true"
+          POSTIZ_URL: ${{ secrets.POSTIZ_URL }}
+          POSTIZ_API_KEY: ${{ secrets.POSTIZ_API_KEY }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          MEDIA_URL_BASE: ${{ vars.MEDIA_URL_BASE }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: node scripts/publish.mjs
