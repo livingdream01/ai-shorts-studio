@@ -9,7 +9,13 @@
     "generate": "node scripts/generate.mjs",
     "render": "node scripts/render.mjs",
     "publish": "node scripts/publish.mjs",
-    "episode": "node scripts/generate.mjs && node scripts/render.mjs"
+    "dashboard": "node scripts/dashboard.mjs",
+    "episode": "node scripts/generate.mjs && node scripts/render.mjs && node scripts/dashboard.mjs",
+    "box:build": "docker build -f box/Dockerfile -t ai-shorts-studio:latest .",
+    "box:run": "docker run --rm -e RUN_ONCE=1 -v \"$PWD/content:/studio/content\" -v \"$PWD/build:/studio/build\" ai-shorts-studio:latest",
+    "box:up": "docker compose -f box/docker-compose.yml up -d",
+    "box:logs": "docker logs -f ai-shorts-studio",
+    "box:down": "docker compose -f box/docker-compose.yml down"
   },
   "dependencies": {
     "yaml": "^2.9.1"

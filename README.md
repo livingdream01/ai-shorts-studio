@@ -22,6 +22,23 @@ open build/001-first-light/episode.mp4
 That produces a real `1080x1920` MP4 with a voiceover (macOS `say`) and captions.
 No accounts, no keys, no cost.
 
+## The studio box (runs itself)
+
+An isolated Linux container that owns the pipeline — **its own machine**. Debian's
+ffmpeg burns captions, and Piper gives it a local neural voice, so it renders a
+voiced, captioned episode with **no API keys at all**.
+
+```sh
+npm run box:up      # start it (runs an episode now, then daily at 14:00)
+npm run box:logs    # watch it work
+open build/index.html   # the review dashboard
+npm run box:down    # stop
+```
+
+- Outputs land in `build/` on your machine (volume-mounted), plus a dashboard.
+- `RUN_HOUR=14` sets the daily time; `RUN_ONCE=1` renders once and exits (CI/demo).
+- Add `.env` credentials and flip `PUBLISH=true` to make it post too.
+
 ## How it works
 
 ```

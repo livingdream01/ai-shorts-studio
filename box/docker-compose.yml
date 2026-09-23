@@ -1,0 +1,17 @@
+services:
+  studio:
+    build:
+      context: ..
+      dockerfile: box/Dockerfile
+    image: ai-shorts-studio:latest
+    container_name: ai-shorts-studio
+    env_file:
+      - ../.env
+    environment:
+      RUN_HOUR: "14"
+      RUN_ONCE: "0"
+    volumes:
+      # edit episodes and see outputs on the host
+      - ../content:/studio/content
+      - ../build:/studio/build
+    restart: unless-stopped

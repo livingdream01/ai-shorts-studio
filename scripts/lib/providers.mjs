@@ -24,16 +24,25 @@ export async function llm({ key, model, system, user }) {
 }
 
 /**
- * Text-to-speech. Uses the macOS `say` command locally; returns the audio path
- * or null if no TTS is available (the render then produces a silent video).
+ * Text-to-speech, no API key needed. Tries, in order:
+ *   1. Piper  (local neural, Linux/CI)   → 16-bit wav
+ *   2. macOS `say` (local, laptop)
+ * Returns the audio path, or null if none is available (silent video).
  */
 export function tts({ text, outWav, voice = "Samantha" }) {
-  if (!has("say")) return null; // e.g. on Linux CI
-  const aiff = outWav.replace(/\.wav$/, ".aiff");
-  execFileSync("say", ["-v", voice, "-o", aiff, text], { stdio: "inherit" });
-  if (!has("ffmpeg")) return null;
-  execFileSync("ffmpeg", ["-y", "-i", aiff, "-ar", "44100", "-ac", "1", outWav], { stdio: "pipe" });
-  return existsSync(outWav) ? outWav : null;
+  if (has("piper")) {
+    const model = process.env.PIPER_MODEL || "/voices/en_US-lessac-medium.onnx";
+    execFileSync("piper", ["--model", model, "--output_file", outWav], { input: text });
+    return existsSync(outWav) ? outWav : null;
+  }
+  if (has("say")) {
+    const aiff = outWav.replace(/\.wav$/, ".aiff");
+    execFileSync("say", ["-v", voice, "-o", aiff, text], { stdio: "inherit" });
+    if (!has("ffmpeg")) return null;
+    execFileSync("ffmpeg", ["-y", "-i", aiff, "-ar", "44100", "-ac", "1", outWav], { stdio: "pipe" });
+    return existsSync(outWav) ? outWav : null;
+  }
+  return null;
 }
 
-export const caps = { has, say: () => has("say"), ffmpeg: () => has("ffmpeg") };
+export const caps = { has, say: () => has("say"), piper: () => has("piper"), ffmpeg: () => has("ffmpeg") };
