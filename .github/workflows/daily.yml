@@ -8,6 +8,8 @@ on:
 jobs:
   episode:
     runs-on: ubuntu-latest
+    env:
+      PIPER_MODEL: /voices/en_US-lessac-medium.onnx
     steps:
       - uses: actions/checkout@v4
 
@@ -16,19 +18,46 @@ jobs:
           node-version: 20
           cache: npm
 
-      # ubuntu-latest ffmpeg ships with libass + freetype, so captions burn in here.
+      # ffmpeg on ubuntu includes libass, so captions burn in.
       - name: System deps
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      # Local neural voice, no API key (same as the studio box).
+      - name: Piper TTS
+        run: |
+          pip install --quiet piper-tts
+          mkdir -p /voices
+          curl -sSL -o /voices/en_US-lessac-medium.onnx \
+            https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
+          curl -sSL -o /voices/en_US-lessac-medium.onnx.json \
+            https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
+
+      # Persist rendered episodes so each day renders the NEXT one in the season.
+      - name: Restore build
+        uses: actions/cache/restore@v4
+        with:
+          path: build
+          key: build-${{ github.run_id }}
+          restore-keys: build-
+
       - run: npm ci
 
-      - name: Generate storyboard
+      - name: Generate next episode
         run: node scripts/generate.mjs
 
-      - name: Render video
+      - name: Render
         run: node scripts/render.mjs
 
-      - name: Upload episode artifact
+      - name: Dashboard
+        run: node scripts/dashboard.mjs
+
+      - name: Save build
+        uses: actions/cache/save@v4
+        with:
+          path: build
+          key: build-${{ github.run_id }}
+
+      - name: Upload episode
         uses: actions/upload-artifact@v4
         with:
           name: episode
@@ -43,5 +72,4 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           MEDIA_URL_BASE: ${{ vars.MEDIA_URL_BASE }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: node scripts/publish.mjs
