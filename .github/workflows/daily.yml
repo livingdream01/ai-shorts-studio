@@ -8,29 +8,21 @@ on:
 jobs:
   episode:
     runs-on: ubuntu-latest
-    env:
-      PIPER_MODEL: /voices/en_US-lessac-medium.onnx
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Build the studio box (ffmpeg+libass, Kokoro, Whisper, Wav2Lip), with layer cache.
+      - name: Build studio box
+        uses: docker/build-push-action@v6
         with:
-          node-version: 20
-          cache: npm
-
-      # ffmpeg on ubuntu includes libass, so captions burn in.
-      - name: System deps
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      # Local neural voice, no API key (same as the studio box).
-      - name: Piper TTS
-        run: |
-          pip install --quiet piper-tts
-          mkdir -p /voices
-          curl -sSL -o /voices/en_US-lessac-medium.onnx \
-            https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
-          curl -sSL -o /voices/en_US-lessac-medium.onnx.json \
-            https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
+          context: .
+          file: box/Dockerfile
+          load: true
+          tags: ai-shorts-studio:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Persist rendered episodes so each day renders the NEXT one in the season.
       - name: Restore build
@@ -40,16 +32,13 @@ jobs:
           key: build-${{ github.run_id }}
           restore-keys: build-
 
-      - run: npm ci
-
-      - name: Generate next episode
-        run: node scripts/generate.mjs
-
-      - name: Render
-        run: node scripts/render.mjs
-
-      - name: Dashboard
-        run: node scripts/dashboard.mjs
+      - name: Render next episode
+        run: |
+          docker run --rm \
+            -v "$PWD/content:/studio/content" \
+            -v "$PWD/build:/studio/build" \
+            ai-shorts-studio:latest \
+            sh -c "node scripts/generate.mjs && node scripts/render.mjs && node scripts/dashboard.mjs"
 
       - name: Save build
         uses: actions/cache/save@v4
@@ -65,11 +54,16 @@ jobs:
 
       - name: Publish
         if: ${{ vars.PUBLISH == 'true' }}
+        run: |
+          docker run --rm \
+            -v "$PWD/content:/studio/content" \
+            -v "$PWD/build:/studio/build" \
+            -e PUBLISH=true \
+            -e POSTIZ_URL -e POSTIZ_API_KEY -e IG_ACCESS_TOKEN -e IG_USER_ID -e MEDIA_URL_BASE \
+            ai-shorts-studio:latest node scripts/publish.mjs
         env:
-          PUBLISH: "true"
           POSTIZ_URL: ${{ secrets.POSTIZ_URL }}
           POSTIZ_API_KEY: ${{ secrets.POSTIZ_API_KEY }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           MEDIA_URL_BASE: ${{ vars.MEDIA_URL_BASE }}
-        run: node scripts/publish.mjs
