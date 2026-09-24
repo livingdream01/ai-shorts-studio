@@ -1,8 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { ROOT } from "./config.mjs";
 
 const has = (cmd) => {
   try { execFileSync("command", ["-v", cmd], { shell: "/bin/sh", stdio: "pipe" }); return true; }
+  catch { return false; }
+};
+const hasPy = (mod) => {
+  try { execFileSync("python3", ["-c", `import ${mod}`], { stdio: "pipe" }); return true; }
   catch { return false; }
 };
 
@@ -24,25 +30,46 @@ export async function llm({ key, model, system, user }) {
 }
 
 /**
- * Text-to-speech, no API key needed. Tries, in order:
- *   1. Piper  (local neural, Linux/CI)   → 16-bit wav
- *   2. macOS `say` (local, laptop)
- * Returns the audio path, or null if none is available (silent video).
+ * Text-to-speech, no API key. Best available, in order:
+ *   1. Kokoro — natural neural TTS (if installed)
+ *   2. Piper  — local neural TTS
+ *   3. macOS `say`
  */
 export function tts({ text, outWav, voice = "Samantha" }) {
+  // 1) Kokoro (natural)
+  if (hasPy("kokoro")) {
+    const script = join(ROOT, "scripts", "lib", "tts_kokoro.py");
+    const kvoice = process.env.KOKORO_VOICE || "af_heart";
+    try {
+      execFileSync("python3", [script, outWav, kvoice, "0.92"], { input: text, stdio: ["pipe", "pipe", "pipe"] });
+      if (existsSync(outWav)) return outWav;
+    } catch (e) {
+      console.warn(`[tts] kokoro failed, falling back: ${String(e.message).split("\n")[0]}`);
+    }
+  }
+  // 2) Piper
   if (has("piper")) {
     const model = process.env.PIPER_MODEL || "/voices/en_US-lessac-medium.onnx";
-    execFileSync("piper", ["--model", model, "--output_file", outWav], { input: text });
-    return existsSync(outWav) ? outWav : null;
+    try {
+      execFileSync("piper", ["--model", model, "--output_file", outWav], { input: text });
+      if (existsSync(outWav)) return outWav;
+    } catch {}
   }
+  // 3) macOS say
   if (has("say")) {
     const aiff = outWav.replace(/\.wav$/, ".aiff");
     execFileSync("say", ["-v", voice, "-o", aiff, text], { stdio: "inherit" });
-    if (!has("ffmpeg")) return null;
-    execFileSync("ffmpeg", ["-y", "-i", aiff, "-ar", "44100", "-ac", "1", outWav], { stdio: "pipe" });
+    if (has("ffmpeg")) execFileSync("ffmpeg", ["-y", "-i", aiff, "-ar", "44100", "-ac", "1", outWav], { stdio: "pipe" });
     return existsSync(outWav) ? outWav : null;
   }
   return null;
 }
 
-export const caps = { has, say: () => has("say"), piper: () => has("piper"), ffmpeg: () => has("ffmpeg") };
+export const caps = {
+  has,
+  ffmpeg: () => has("ffmpeg"),
+  kokoro: () => hasPy("kokoro"),
+  piper: () => has("piper"),
+  whisper: () => hasPy("faster_whisper"),
+  wav2lip: () => existsSync("/opt/wav2lip/inference.py"),
+};

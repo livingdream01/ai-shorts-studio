@@ -19,14 +19,16 @@ npm run episode      # generate + render the bundled example episode
 open build/001-first-light/episode.mp4
 ```
 
-That produces a real `1080x1920` MP4 with a voiceover (macOS `say`) and captions.
-No accounts, no keys, no cost.
+That produces a real `1080x1920` MP4: a **talking-head avatar** (Wav2Lip on a
+generated portrait), a **natural voice** (Kokoro), and **captions aligned to the
+audio** (Whisper). No accounts, no keys, no cost — everything runs locally.
 
 ## The studio box (runs itself)
 
-An isolated Linux container that owns the pipeline — **its own machine**. Debian's
-ffmpeg burns captions, and Piper gives it a local neural voice, so it renders a
-voiced, captioned episode with **no API keys at all**.
+An isolated Linux container that owns the pipeline — **its own machine**. It ships
+everything the render needs so it works with **no API keys at all**: Debian's ffmpeg
+(libass captions), **Kokoro** (natural TTS), **Whisper** (caption alignment) and
+**Wav2Lip** (talking-head avatar).
 
 ```sh
 npm run box:up      # start it (runs an episode now, then daily at 14:00)
@@ -60,20 +62,17 @@ content/log.csv
 | `npm run episode` | generate + render in one step |
 | `npm run publish` | send to Instagram (dry-run unless `PUBLISH=true`) |
 
-## Make it cinematic
+## The avatar
 
-`render` gives a clean base. To go further, generate the shots listed in the
-storyboard and feed them in:
+`assets/wren-ref.png` is the character (generated once with SD-Turbo). `render`
+animates it with [Wav2Lip](https://github.com/Rudrabha/Wav2Lip) so the mouth moves
+with the voice, over a blurred background, with a caption band.
 
-| Want | Tool |
-|---|---|
-| Cinematic b-roll | [Wan2.1](https://github.com/Wan-Video/Wan2.1) · [CogVideo](https://github.com/zai-org/CogVideo) · ComfyUI |
-| Talking head | [LivePortrait](https://github.com/KwaiVGI/LivePortrait) · [Wav2Lip](https://github.com/Rudrabha/Wav2Lip) · [LatentSync](https://github.com/bytedance/LatentSync) |
-| Multi-character drama | [MultiTalk](https://github.com/MeiGen-AI/MultiTalk) · [EchoMimic](https://github.com/antgroup/echomimic) |
-| Voice | [XTTS](https://github.com/coqui-ai/TTS) · [F5-TTS](https://github.com/SWivid/F5-TTS) · [Kokoro](https://github.com/hexgrad/kokoro) |
-| Captions | [Whisper](https://github.com/openai/whisper) |
-
-Full verified list in the vault (`Tool Stack`).
+Change the character by replacing the portrait. For richer motion, swap Wav2Lip for
+[LivePortrait](https://github.com/KwaiVGI/LivePortrait) or
+[SadTalker](https://github.com/OpenTalker/SadTalker), and for dialogue between two
+characters use [MultiTalk](https://github.com/MeiGen-AI/MultiTalk). Full verified
+list in the vault (`Tool Stack`).
 
 ## Publishing
 
